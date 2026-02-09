@@ -1,5 +1,10 @@
 # EAS 587 Phase 1: Crime Data Analysis
 
+# Team Members 
+1. Harsh Mahesh Tikone
+2. Dev Desai
+3. Shwetangi Singh
+
 ## Project Overview
 Analysis of crime data from 2020 to present.
 
