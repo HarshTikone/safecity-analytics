@@ -1,0 +1,8 @@
+EDA Key Findings
+=================
+1. Most common crime type: VEHICLE - STOLEN (13741 incidents, 22.13%).
+2. Highest incident area: CENTRAL (6024 incidents, 9.7%).
+3. Peak day of week: Friday (9550 incidents).
+4. Peak incident hour: 18:00 (3911 incidents).
+5. Victim age median: 35.0 years (mean 38.17).
+6. Median report delay: 1.0 days (95th percentile: 24.0 days).

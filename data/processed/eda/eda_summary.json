@@ -1,0 +1,167 @@
+{
+  "input_path": "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/crime_data_cleaned.csv",
+  "output_dir": "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda",
+  "rows_analyzed": 62105,
+  "columns_analyzed": 31,
+  "completed_operations": 14,
+  "skipped_operations": 0,
+  "operations": [
+    {
+      "name": "dataset_profile",
+      "description": "Basic dataset shape, uniqueness, and date coverage.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/01_dataset_profile.csv"
+      ],
+      "plots": []
+    },
+    {
+      "name": "missingness_analysis",
+      "description": "Column-level missing-value audit with percentages.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/02_missingness_by_column.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/02_missingness_top15.png"
+      ]
+    },
+    {
+      "name": "numeric_descriptive_statistics",
+      "description": "Distribution summary for all numeric columns.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/03_numeric_descriptive_stats.csv"
+      ],
+      "plots": []
+    },
+    {
+      "name": "crime_type_frequency",
+      "description": "Top crime categories by count and percentage.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/04_top20_crime_types.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/04_top20_crime_types.png"
+      ]
+    },
+    {
+      "name": "area_distribution",
+      "description": "Incident concentration by policing area.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/05_top20_areas.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/05_top20_areas.png"
+      ]
+    },
+    {
+      "name": "monthly_trend",
+      "description": "Temporal trend of incidents aggregated by month.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/06_monthly_trend.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/06_monthly_trend.png"
+      ]
+    },
+    {
+      "name": "day_of_week_pattern",
+      "description": "Distribution of incidents by day of week.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/07_day_of_week_distribution.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/07_day_of_week_distribution.png"
+      ]
+    },
+    {
+      "name": "hour_of_day_pattern",
+      "description": "Hourly crime pattern across a 24-hour cycle.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/08_hour_of_day_distribution.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/08_hour_of_day_distribution.png"
+      ]
+    },
+    {
+      "name": "victim_age_distribution",
+      "description": "Victim age summary statistics, bins, and histogram.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/09_victim_age_summary.csv",
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/09_victim_age_groups.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/09_victim_age_distribution.png"
+      ]
+    },
+    {
+      "name": "victim_sex_distribution",
+      "description": "Victim sex category distribution.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/10_victim_sex_distribution.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/10_victim_sex_distribution.png"
+      ]
+    },
+    {
+      "name": "weapon_usage_analysis",
+      "description": "Weapon category frequencies, including non-weapon incidents.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/11_weapon_usage_top20.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/11_weapon_usage_top20.png"
+      ]
+    },
+    {
+      "name": "report_delay_analysis",
+      "description": "Summary and distribution of delay between occurrence and reporting.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/12_report_delay_summary.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/12_report_delay_distribution.png"
+      ]
+    },
+    {
+      "name": "case_status_distribution",
+      "description": "Distribution of reported case statuses.",
+      "status": "completed",
+      "tables": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/tables/13_case_status_distribution.csv"
+      ],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/13_case_status_distribution.png"
+      ]
+    },
+    {
+      "name": "geospatial_hotspot_analysis",
+      "description": "Hexbin map showing geographic concentration of incidents.",
+      "status": "completed",
+      "tables": [],
+      "plots": [
+        "/Users/DEVDESAI1/Desktop/University_at_Buffalo/Assignments/DIC/Assignmet1/DIC_Assignment_safecity-analytics/data/processed/eda/plots/14_geospatial_hotspots_hexbin.png"
+      ]
+    }
+  ],
+  "key_findings": [
+    "Most common crime type: VEHICLE - STOLEN (13741 incidents, 22.13%).",
+    "Highest incident area: CENTRAL (6024 incidents, 9.7%).",
+    "Peak day of week: Friday (9550 incidents).",
+    "Peak incident hour: 18:00 (3911 incidents).",
+    "Victim age median: 35.0 years (mean 38.17).",
+    "Median report delay: 1.0 days (95th percentile: 24.0 days)."
+  ]
+}

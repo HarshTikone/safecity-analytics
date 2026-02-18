@@ -57,7 +57,7 @@ def clean_object_columns(df):
     return df
 
 
-def clean_object_columns(df, columns):
+def coerce_numeric_columns(df, columns):
     df = df.copy()
     for col in columns:
         if col in df.columns:
@@ -215,7 +215,7 @@ def run_cleaning_pipeline(input_path, output_path, report_path):
     df = clean_object_columns(df)
     track_step("clean_object_columns", before, len(df))
     before = len(df)
-    df = clean_object_columns(
+    df = coerce_numeric_columns(
         df,
         [
             "dr_no",
@@ -271,7 +271,7 @@ def run_cleaning_pipeline(input_path, output_path, report_path):
     df = add_derived_cols(df)
     track_step("add_derived_columns", before, len(df), columns=len(df.columns))
     before = len(df)
-    df, dropped_sparse_columns = _drop_sparse_columns(df, threshold=0.98)
+    df, dropped_sparse_columns = drop_sparse_columns(df, threshold=0.98)
     track_step(
         "drop_sparse_columns",
         before,
