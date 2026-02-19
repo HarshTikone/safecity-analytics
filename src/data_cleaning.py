@@ -1,361 +1,299 @@
 """
-Phase 1 data cleaning pipeline for LA crime dataset.
-
-This script performs a reproducible sequence of cleaning operations and writes:
-1) cleaned CSV dataset
-2) JSON cleaning summary (step-level metrics)
+data_cleaning.py
+Data Cleaning Module for LA Crime Data Analysis
+EAS 587 - Phase 1 Project
 """
 
-from __future__ import annotations
-
-import argparse
-import json
-from pathlib import Path
-from typing import Dict, List
 import pandas as pd
+import numpy as np
+from datetime import datetime
 
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_INPUT_PATH = PROJECT_ROOT / "data" / "raw" / "crime_data_2024_to_present.csv"
-DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "data" / "processed" / "crime_data_cleaned.csv"
-DEFAULT_REPORT_PATH = PROJECT_ROOT / "data" / "processed" / "data_cleaning_summary.json"
-
-
-def normalize_column_names(df):
-    df = df.copy()
-    df.columns = (
-        df.columns.str.strip()
-        .str.lower()
-        .str.replace(r"[^a-z0-9]+", "_", regex=True)
-        .str.strip("_")
-    )
+def load_data(filepath):
+    """Load raw crime data from CSV file."""
+    print("Loading raw data...")
+    df = pd.read_csv(filepath)
+    print(f"Loaded {len(df):,} records with {len(df.columns)} columns")
     return df
 
+def clean_date_columns(df):
+    """
+    CLEANING OPERATION 1: Convert date columns to datetime format
+    - Converts 'Date Rptd' and 'DATE OCC' to datetime objects
+    - Extracts year, month, day, and day of week for analysis
+    """
+    print("\n[1] Cleaning date columns...")
+    df['Date Rptd'] = pd.to_datetime(df['Date Rptd'])
+    df['DATE OCC'] = pd.to_datetime(df['DATE OCC'])
 
-def clean_object_columns(df):
-    df = df.copy()
-    object_cols = df.select_dtypes(include="object").columns
-    if len(object_cols) == 0:
-        return df
+    # Extract temporal features
+    df['Year'] = df['DATE OCC'].dt.year
+    df['Month'] = df['DATE OCC'].dt.month
+    df['Day'] = df['DATE OCC'].dt.day
+    df['DayOfWeek'] = df['DATE OCC'].dt.day_name()
+    df['Hour'] = df['TIME OCC'] // 100
 
-    placeholder_values = {
-        "": pd.NA,
-        " ": pd.NA,
-        "na": pd.NA,
-        "n/a": pd.NA,
-        "null": pd.NA,
-        "none": pd.NA,
-        "unknown": pd.NA,
+    print("  - Converted date columns to datetime")
+    print("  - Extracted Year, Month, Day, DayOfWeek, Hour")
+    return df
+
+def clean_time_column(df):
+    """
+    CLEANING OPERATION 2: Handle invalid time values
+    - Some TIME OCC values are > 2400 (invalid)
+    - Filter and correct invalid time entries
+    """
+    print("\n[2] Cleaning time column...")
+    invalid_times = df[df['TIME OCC'] > 2400].shape[0]
+    print(f"  - Found {invalid_times} invalid time entries")
+
+    # Cap at 2400 and convert to valid format
+    df.loc[df['TIME OCC'] > 2400, 'TIME OCC'] = 2400
+    df['Hour'] = df['TIME OCC'] // 100
+    df.loc[df['Hour'] > 23, 'Hour'] = 23
+
+    print("  - Corrected invalid time values")
+    return df
+
+def handle_missing_victim_info(df):
+    """
+    CLEANING OPERATION 3: Handle missing victim demographic data
+    - Victim age 0 often indicates unknown (not actual age)
+    - Replace 0 age with NaN for accurate statistics
+    - Create 'Unknown' category for missing sex/descent
+    """
+    print("\n[3] Handling missing victim information...")
+
+    # Age 0 is likely unknown, not actual age
+    zero_age_count = (df['Vict Age'] == 0).sum()
+    df.loc[df['Vict Age'] == 0, 'Vict Age'] = np.nan
+    print(f"  - Replaced {zero_age_count} zero ages with NaN")
+
+    # Fill missing sex/descent with 'Unknown'
+    df['Vict Sex'] = df['Vict Sex'].fillna('Unknown')
+    df['Vict Descent'] = df['Vict Descent'].fillna('Unknown')
+    print("  - Filled missing sex/descent with 'Unknown'")
+
+    return df
+
+def standardize_categorical_values(df):
+    """
+    CLEANING OPERATION 4: Standardize categorical values
+    - Standardize victim sex codes
+    - Map descent codes to full descriptions
+    """
+    print("\n[4] Standardizing categorical values...")
+
+    # Standardize sex codes
+    sex_mapping = {
+        'M': 'Male',
+        'F': 'Female',
+        'X': 'Unknown',
+        'H': 'Unknown',
+        'Unknown': 'Unknown'
     }
-    for col in object_cols:
-        df[col] = (
-            df[col]
-            .astype("string")
-            .str.strip()
-            .replace(placeholder_values, regex=False)
-        )
+    df['Vict Sex Clean'] = df['Vict Sex'].map(sex_mapping)
+
+    # Map descent codes to descriptions
+    descent_mapping = {
+        'W': 'White',
+        'B': 'Black',
+        'H': 'Hispanic',
+        'A': 'Asian',
+        'O': 'Other',
+        'C': 'Chinese',
+        'K': 'Korean',
+        'J': 'Japanese',
+        'F': 'Filipino',
+        'V': 'Vietnamese',
+        'I': 'American Indian',
+        'Z': 'Asian Indian',
+        'P': 'Pacific Islander',
+        'U': 'Hawaiian',
+        'D': 'Cambodian',
+        'L': 'Laotian',
+        'S': 'Samoan',
+        'G': 'Guamanian',
+        'X': 'Unknown',
+        'Unknown': 'Unknown'
+    }
+    df['Vict Descent Clean'] = df['Vict Descent'].map(descent_mapping)
+
+    print("  - Standardized victim sex codes")
+    print("  - Mapped descent codes to descriptions")
     return df
 
-
-def coerce_numeric_columns(df, columns):
-    df = df.copy()
-    for col in columns:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
+def remove_unused_crime_code_columns(df):
+    """
+    CLEANING OPERATION 5: Remove columns with excessive missing data
+    - Crm Cd 2, 3, 4 are 98-100% missing
+    - These provide no analytical value
+    """
+    print("\n[5] Removing columns with excessive missing data...")
+    cols_to_drop = ['Crm Cd 2', 'Crm Cd 3', 'Crm Cd 4']
+    df = df.drop(columns=cols_to_drop, errors='ignore')
+    print(f"  - Dropped columns: {cols_to_drop}")
     return df
 
+def categorize_crime_types(df):
+    """
+    CLEANING OPERATION 6: Create crime category groupings
+    - Group similar crime types into broader categories
+    - Makes analysis more manageable and interpretable
+    """
+    print("\n[6] Categorizing crime types...")
 
-def parse_datetime_columns(df, columns):
-    df = df.copy()
-    for col in columns:
-        if col in df.columns:
-            df[col] = pd.to_datetime(df[col], errors="coerce")
+    def get_crime_category(crime_desc):
+        crime_desc = str(crime_desc).upper()
+        if 'VEHICLE' in crime_desc or 'STOLEN' in crime_desc:
+            return 'Vehicle Crime'
+        elif 'THEFT' in crime_desc or 'SHOPLIFTING' in crime_desc or 'PICKPOCKET' in crime_desc:
+            return 'Theft'
+        elif 'BURGLARY' in crime_desc:
+            return 'Burglary'
+        elif 'VANDALISM' in crime_desc:
+            return 'Vandalism'
+        elif 'ASSAULT' in crime_desc or 'BATTERY' in crime_desc:
+            return 'Assault/Battery'
+        elif 'ROBBERY' in crime_desc:
+            return 'Robbery'
+        elif 'IDENTITY' in crime_desc:
+            return 'Identity Theft'
+        elif 'TRESPASS' in crime_desc:
+            return 'Trespassing'
+        elif 'DRUG' in crime_desc or 'NARCOTIC' in crime_desc:
+            return 'Drug Offense'
+        elif 'FRAUD' in crime_desc or 'EMBEZZLE' in crime_desc or 'BUNCO' in crime_desc:
+            return 'Fraud'
+        elif 'SEX' in crime_desc or 'RAPE' in crime_desc or 'LEWD' in crime_desc:
+            return 'Sex Offense'
+        elif 'HOMICIDE' in crime_desc or 'MURDER' in crime_desc:
+            return 'Homicide'
+        else:
+            return 'Other'
+
+    df['Crime Category'] = df['Crm Cd Desc'].apply(get_crime_category)
+    print("  - Created 'Crime Category' column with 12 categories")
+    print(f"  - Categories: {df['Crime Category'].unique().tolist()}")
     return df
 
+def categorize_premise_types(df):
+    """
+    CLEANING OPERATION 7: Categorize premise types
+    - Group premise descriptions into broader location categories
+    """
+    print("\n[7] Categorizing premise types...")
 
-def clean_occurrence_time(df):
-    df = df.copy()
-    if "time_occ" not in df.columns:
-        return df
+    def get_premise_category(premise):
+        if pd.isna(premise):
+            return 'Unknown'
+        premise = str(premise).upper()
+        if 'STREET' in premise or 'SIDEWALK' in premise or 'ALLEY' in premise:
+            return 'Public Street'
+        elif 'PARKING' in premise or 'GARAGE' in premise or 'DRIVEWAY' in premise:
+            return 'Parking Area'
+        elif 'STORE' in premise or 'MARKET' in premise or 'BUSINESS' in premise or 'SHOP' in premise:
+            return 'Commercial'
+        elif 'DWELLING' in premise or 'HOUSE' in premise or 'APARTMENT' in premise or 'RESIDENCE' in premise:
+            return 'Residential'
+        elif 'VEHICLE' in premise:
+            return 'Vehicle'
+        elif 'MTA' in premise or 'TRANSPORT' in premise or 'BUS' in premise or 'TRAIN' in premise:
+            return 'Transit'
+        elif 'PARK' in premise or 'PLAYGROUND' in premise:
+            return 'Park/Recreation'
+        elif 'SCHOOL' in premise or 'COLLEGE' in premise or 'UNIVERSITY' in premise:
+            return 'Educational'
+        else:
+            return 'Other'
 
-    df["time_occ"] = pd.to_numeric(df["time_occ"], errors="coerce")
-    df.loc[(df["time_occ"] < 0) | (df["time_occ"] > 2359), "time_occ"] = pd.NA
-
-    occ_hour = (df["time_occ"] // 100).astype("Int64")
-    occ_minute = (df["time_occ"] % 100).astype("Int64")
-    invalid_minutes = occ_minute > 59
-    occ_hour = occ_hour.mask(invalid_minutes)
-    occ_minute = occ_minute.mask(invalid_minutes)
-
-    df["occ_hour"] = occ_hour
-    df["occ_minute"] = occ_minute
+    df['Premise Category'] = df['Premis Desc'].apply(get_premise_category)
+    print("  - Created 'Premise Category' column")
     return df
 
+def create_age_groups(df):
+    """
+    CLEANING OPERATION 8: Create age group categories
+    - Bin victim ages into meaningful groups for analysis
+    """
+    print("\n[8] Creating age groups...")
 
-def clean_victim_age(df):
-    df = df.copy()
-    if "vict_age" not in df.columns:
-        return df
+    bins = [0, 18, 25, 35, 45, 55, 65, 100]
+    labels = ['0-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']
 
-    df["vict_age"] = pd.to_numeric(df["vict_age"], errors="coerce")
-    invalid_age = (df["vict_age"] <= 0) | (df["vict_age"] > 100)
-    df.loc[invalid_age, "vict_age"] = pd.NA
+    df['Age Group'] = pd.cut(df['Vict Age'], bins=bins, labels=labels, right=False)
+    print("  - Created 'Age Group' column with 7 categories")
     return df
 
+def handle_coordinate_outliers(df):
+    """
+    CLEANING OPERATION 9: Handle geographic coordinate outliers
+    - LA coordinates should be approximately 33-35 N, -117 to -119 W
+    - Remove or flag entries outside reasonable bounds
+    """
+    print("\n[9] Handling coordinate outliers...")
 
-def norm_cat_cols(df):
-    df = df.copy()
-    for col in ["vict_sex", "vict_descent", "status", "status_desc", "area_name"]:
-        if col in df.columns:
-            df[col] = df[col].astype("string").str.upper().str.strip()
+    # LA area bounds
+    lat_min, lat_max = 33.5, 34.5
+    lon_min, lon_max = -118.8, -117.8
 
-    if "vict_sex" in df.columns:
-        df["vict_sex"] = df["vict_sex"].where(df["vict_sex"].isin(["M", "F", "X"]), "X")
-        df["vict_sex"] = df["vict_sex"].fillna("X")
-
-    if "vict_descent" in df.columns:
-        df["vict_descent"] = df["vict_descent"].fillna("X")
-
-    if "status" in df.columns:
-        df["status"] = df["status"].fillna("UNK")
-    if "status_desc" in df.columns:
-        df["status_desc"] = df["status_desc"].fillna("UNKNOWN")
-    return df
-
-
-def validate_cods(df):
-    df = df.copy()
-    if "lat" not in df.columns or "lon" not in df.columns:
-        return df
-
-    df["lat"] = pd.to_numeric(df["lat"], errors="coerce")
-    df["lon"] = pd.to_numeric(df["lon"], errors="coerce")
-
-    both_present = df["lat"].notna() & df["lon"].notna()
-    zero_coords = both_present & (df["lat"] == 0) & (df["lon"] == 0)
-    # Approx LA County bounds for sanity filtering.
-    out_of_bounds = both_present & (
-        (~df["lat"].between(33.5, 34.4)) | (~df["lon"].between(-118.95, -117.6))
+    outlier_mask = (
+        (df['LAT'] < lat_min) | (df['LAT'] > lat_max) |
+        (df['LON'] < lon_min) | (df['LON'] > lon_max)
     )
+    outlier_count = outlier_mask.sum()
 
-    invalid_coords = zero_coords | out_of_bounds
-    df.loc[invalid_coords, ["lat", "lon"]] = pd.NA
+    # Flag outliers instead of removing
+    df['Valid Coordinates'] = ~outlier_mask
+    print(f"  - Flagged {outlier_count} records with outlier coordinates")
     return df
 
+def create_reporting_delay_feature(df):
+    """
+    CLEANING OPERATION 10: Calculate reporting delay
+    - Days between crime occurrence and reporting
+    - Important feature for understanding reporting patterns
+    """
+    print("\n[10] Creating reporting delay feature...")
 
-def add_derived_cols(df):
-    df = df.copy()
-    if "date_occ" in df.columns:
-        df["occ_year"] = df["date_occ"].dt.year
-        df["occ_month"] = df["date_occ"].dt.month
-        df["occ_day_of_week"] = df["date_occ"].dt.day_name()
+    df['Reporting Delay (Days)'] = (df['Date Rptd'] - df['DATE OCC']).dt.days
 
-    if "date_rptd" in df.columns and "date_occ" in df.columns:
-        delay = (df["date_rptd"] - df["date_occ"]).dt.days
-        delay = delay.mask(delay < 0, pd.NA)
-        df["report_delay_days"] = delay
+    # Flag negative delays (data quality issue)
+    negative_delays = (df['Reporting Delay (Days)'] < 0).sum()
+    print(f"  - Found {negative_delays} records with negative reporting delay")
+
+    # Set negative delays to 0 (same-day reporting)
+    df.loc[df['Reporting Delay (Days)'] < 0, 'Reporting Delay (Days)'] = 0
+
+    print("  - Created 'Reporting Delay (Days)' column")
     return df
 
-
-def drop_sparse_columns(df, threshold = 0.98):
-    df = df.copy()
-    missing_ratio = df.isna().mean()
-    cols_to_drop = missing_ratio[missing_ratio >= threshold].index.tolist()
-    if cols_to_drop:
-        df = df.drop(columns=cols_to_drop)
-    return df, cols_to_drop
-
-
-def drop_rows_mis_req_flds(df):
-    df = df.copy()
-    required = [col for col in ["date_occ", "crm_cd", "area"] if col in df.columns]
-    if required:
-        df = df.dropna(subset=required)
-    return df
-
-
-def cast_null_int_cols(df, columns):
-    df = df.copy()
-    for col in columns:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
-    return df
-
-
-def run_cleaning_pipeline(input_path, output_path, report_path):
-    if not input_path.exists():
-        raise FileNotFoundError(f"Raw input file not found: {input_path}")
-
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.parent.mkdir(parents=True, exist_ok=True)
-
-    steps: List[Dict[str, object]] = []
-
-    def track_step(step_name: str, before_rows: int, after_rows: int, **details: object) -> None:
-        step_record: Dict[str, object] = {
-            "step": step_name,
-            "before_rows": before_rows,
-            "after_rows": after_rows,
-            "rows_changed": before_rows - after_rows,
-        }
-        step_record.update(details)
-        steps.append(step_record)
-
-    df = pd.read_csv(input_path, low_memory=False)
-    initial_rows = len(df)
-    initial_columns = list(df.columns)
-
-    '''Standardise colm names'''
-    before = len(df)
-    df = normalize_column_names(df)
-    track_step("normalize_column_names", before, len(df), columns=len(df.columns))
-
-    '''Trim object columns and missing markers'''
-    before = len(df)
-    df = clean_object_columns(df)
-    track_step("clean_object_columns", before, len(df))
-    before = len(df)
-    df = coerce_numeric_columns(
-        df,
-        [
-            "dr_no",
-            "time_occ",
-            "area",
-            "rpt_dist_no",
-            "part_1_2",
-            "crm_cd",
-            "premis_cd",
-            "weapon_used_cd",
-            "crm_cd_1",
-            "crm_cd_2",
-            "crm_cd_3",
-            "crm_cd_4",
-            "lat",
-            "lon",
-            "vict_age",
-        ],
-    )
-    track_step("coerce_numeric_columns", before, len(df))
-
-    before = len(df)
-    df = parse_datetime_columns(df, ["date_occ", "date_rptd"])
-    track_step("parse_datetime_columns", before, len(df))
-
-    before = len(df)
-    df = clean_occurrence_time(df)
-    track_step("clean_occurrence_time", before, len(df))
-
-    before = len(df)
-    df = df.drop_duplicates()
-    track_step("drop_exact_duplicates", before, len(df))
-    before = len(df)
-    if {"dr_no", "date_rptd"}.issubset(df.columns):
-        df = df.sort_values("date_rptd").drop_duplicates(subset=["dr_no"], keep="last")
-    elif "dr_no" in df.columns:
-        df = df.drop_duplicates(subset=["dr_no"], keep="first")
-    track_step("drop_duplicate_incidents_by_dr_no", before, len(df))
-
-    before = len(df)
-    df = clean_victim_age(df)
-    track_step("clean_victim_age", before, len(df))
-    
-    before = len(df)
-    df = norm_cat_cols(df)
-    track_step("normalize_category_columns", before, len(df))
-
-    before = len(df)
-    df = validate_cods(df)
-    track_step("validate_coordinates", before, len(df))
-
-    before = len(df)
-    df = add_derived_cols(df)
-    track_step("add_derived_columns", before, len(df), columns=len(df.columns))
-    before = len(df)
-    df, dropped_sparse_columns = drop_sparse_columns(df, threshold=0.98)
-    track_step(
-        "drop_sparse_columns",
-        before,
-        len(df),
-        dropped_columns=dropped_sparse_columns,
-        dropped_count=len(dropped_sparse_columns),
-    )
-
-    before = len(df)
-    df = drop_rows_mis_req_flds(df)
-    track_step("drop_rows_missing_required_fields", before, len(df))
-
-    before = len(df)
-    df = cast_null_int_cols(
-        df,
-        [
-            "dr_no",
-            "time_occ",
-            "occ_hour",
-            "occ_minute",
-            "area",
-            "rpt_dist_no",
-            "part_1_2",
-            "crm_cd",
-            "premis_cd",
-            "weapon_used_cd",
-            "crm_cd_1",
-            "crm_cd_2",
-            "crm_cd_3",
-            "crm_cd_4",
-            "vict_age",
-            "occ_year",
-            "occ_month",
-            "report_delay_days",
-        ],
-    )
-    track_step("cast_nullable_integer_columns", before, len(df))
-
-    before = len(df)
-    sort_cols = [c for c in ["date_occ", "dr_no"] if c in df.columns]
-    if sort_cols:
-        df = df.sort_values(sort_cols).reset_index(drop=True)
-    track_step("sort_and_reset_index", before, len(df))
-
+def save_cleaned_data(df, output_path):
+    """Save cleaned data to CSV."""
     df.to_csv(output_path, index=False)
-
-    summary: Dict[str, object] = {
-        "input_path": str(input_path),
-        "output_path": str(output_path),
-        "initial_rows": initial_rows,
-        "final_rows": len(df),
-        "rows_removed": initial_rows - len(df),
-        "initial_columns": initial_columns,
-        "final_columns": list(df.columns),
-        "final_column_count": len(df.columns),
-        "steps": steps,
-    }
-
-    with report_path.open("w", encoding="utf-8") as f:
-        json.dump(summary, f, indent=2, default=str)
-
-    return summary
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Run data cleaning pipeline.")
-    parser.add_argument("--input", type=Path, default=DEFAULT_INPUT_PATH, help="Raw CSV path")
-    parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT_PATH, help="Cleaned CSV path")
-    parser.add_argument(
-        "--report",
-        type=Path,
-        default=DEFAULT_REPORT_PATH,
-        help="JSON cleaning summary path",
-    )
-    return parser.parse_args()
-
+    print(f"\nCleaned data saved to: {output_path}")
+    print(f"Final dataset: {len(df):,} records, {len(df.columns)} columns")
 
 def main():
-    args = parse_args()
-    summary = run_cleaning_pipeline(args.input, args.output, args.report)
-    print(f"Cleaning complete: {summary['final_rows']} rows, {summary['final_column_count']} columns")
-    print(f"Cleaned dataset: {summary['output_path']}")
-    print(f"Summary report: {args.report}")
+    """Main cleaning pipeline."""
+    # Load data
+    df = load_data('data/raw/crime_data_2024_to_present.csv')
 
+    # Apply cleaning operations
+    df = clean_date_columns(df)
+    df = clean_time_column(df)
+    df = handle_missing_victim_info(df)
+    df = standardize_categorical_values(df)
+    df = remove_unused_crime_code_columns(df)
+    df = categorize_crime_types(df)
+    df = categorize_premise_types(df)
+    df = create_age_groups(df)
+    df = handle_coordinate_outliers(df)
+    df = create_reporting_delay_feature(df)
+
+    # Save cleaned data
+    save_cleaned_data(df, 'data/processed/crime_data_cleaned.csv')
+
+    return df
 
 if __name__ == "__main__":
     main()
