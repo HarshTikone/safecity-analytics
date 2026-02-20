@@ -1,0 +1,124 @@
+{
+  "total_rows": 62105,
+  "steps": [
+    {
+      "step": "Deduplication",
+      "description": "Exact duplicate rows removed",
+      "rows_affected": 0,
+      "pct_affected": 0.0,
+      "detail": ""
+    },
+    {
+      "step": "Date parse: Date Rptd",
+      "description": "Unparseable values \u2192 NaT",
+      "rows_affected": 0,
+      "pct_affected": 0.0,
+      "detail": ""
+    },
+    {
+      "step": "Date parse: DATE OCC",
+      "description": "Unparseable values \u2192 NaT",
+      "rows_affected": 0,
+      "pct_affected": 0.0,
+      "detail": ""
+    },
+    {
+      "step": "Temporal features",
+      "description": "Extracted 7 time features from dates",
+      "rows_affected": 62105,
+      "pct_affected": 100.0,
+      "detail": "(Year, Month, DayOfWeek, IsWeekend, Hour, Minute, TimeBucket)"
+    },
+    {
+      "step": "Reporting delay",
+      "description": "Negative delays (date entry errors) clamped to 0",
+      "rows_affected": 0,
+      "pct_affected": 0.0,
+      "detail": ""
+    },
+    {
+      "step": "Suspicious delay flag",
+      "description": "Delays > 365 days flagged",
+      "rows_affected": 0,
+      "pct_affected": 0.0,
+      "detail": ""
+    },
+    {
+      "step": "Age: zeros \u2192 NaN",
+      "description": "LAPD encodes unknown age as 0",
+      "rows_affected": 30096,
+      "pct_affected": 48.46,
+      "detail": ""
+    },
+    {
+      "step": "Age: out-of-range \u2192 NaN",
+      "description": "Ages outside [1, 100] nulled",
+      "rows_affected": 0,
+      "pct_affected": 0.0,
+      "detail": ""
+    },
+    {
+      "step": "Victim sex standardised",
+      "description": "Codes mapped to Male/Female/Unknown",
+      "rows_affected": 0,
+      "pct_affected": 0.0,
+      "detail": ""
+    },
+    {
+      "step": "Victim descent mapped",
+      "description": "Single-letter codes \u2192 full descriptions",
+      "rows_affected": 29419,
+      "pct_affected": 47.37,
+      "detail": "(47.4% unknown \u2014 significant, track in EDA)"
+    },
+    {
+      "step": "Crime categories",
+      "description": "140+ types \u2192 13 categories",
+      "rows_affected": 2467,
+      "pct_affected": 3.97,
+      "detail": "(2,467 fell into 'Other' \u2014 review CRIME_CATEGORY_RULES if high)"
+    },
+    {
+      "step": "Premise categories",
+      "description": "Premise descriptions grouped into 10 location types",
+      "rows_affected": 7089,
+      "pct_affected": 11.41,
+      "detail": ""
+    },
+    {
+      "step": "Weapon flag created",
+      "description": "Binary Has_Weapon extracted from 94%-missing column",
+      "rows_affected": 3641,
+      "pct_affected": 5.86,
+      "detail": "(5.9% of crimes involve a weapon)"
+    },
+    {
+      "step": "Zero coordinates \u2192 NaN",
+      "description": "LAT/LON of (0,0) treated as missing",
+      "rows_affected": 0,
+      "pct_affected": 0.0,
+      "detail": ""
+    },
+    {
+      "step": "Out-of-LA coords flagged",
+      "description": "Outside bounding box (33.5, 34.5), (-118.95, -117.65)",
+      "rows_affected": 0,
+      "pct_affected": 0.0,
+      "detail": ""
+    },
+    {
+      "step": "Low-value columns dropped",
+      "description": "Columns >98% missing removed",
+      "rows_affected": 3,
+      "pct_affected": 0.0,
+      "detail": "(['Crm Cd 2', 'Crm Cd 3', 'Crm Cd 4'])"
+    },
+    {
+      "step": "Demographic unknown flag",
+      "description": "Rows with ALL victim demographics unknown",
+      "rows_affected": 28963,
+      "pct_affected": 46.64,
+      "detail": "(46.6% \u2014 analyse distribution in EDA)"
+    }
+  ]
+}
