@@ -1,40 +1,47 @@
-# LA Crime Data Analysis - EAS 587 Phase 1
+# SafeCity Analytics: LA Crime Data (Phase 1)
 
-## Project Overview
-This project analyzes Los Angeles crime data from 2024 to present, covering 62,105 crime records. The analysis follows the data science pipeline including data acquisition, cleaning, exploratory data analysis (EDA), and visualization.
-## Team Members
+## Course + Assignment Header
+- **Subject Code:** EAS 587  
+- **Course:** Data-Intensive Computing (Spring 2026)  
+- **Assignment No.:** Assignment 1 (Project Phase 1)  
+- **Project Title:** SafeCity Analytics: LA Crime Data Analysis  
+- **Instructor:** Dr. Justice Del Vacio 
+- **Team Members:**  
+  - Harsh Mahesh Tikone  
+  - Dev Desai  
+  - Shwetangi  
 
-- Harsh Mahesh Tikone
-- Dev Desai
-- Shwetangi
-  
-## Problem Statement
-Understanding crime patterns is essential for effective law enforcement resource allocation and public safety planning. This project aims to:
-- Identify temporal patterns in crime occurrence
-- Analyze geographic distribution of crimes across LA areas
-- Understand victim demographics and their relationship to crime types
-- Provide actionable insights for crime prevention strategies
+---
 
-## Dataset
-**Source:** Los Angeles Police Department (LAPD) Crime Data  
-**URL:** https://data.lacity.org/Public-Safety/Crime-Data-from-2020-to-Present/63jg-8b9z  
-**Records:** 62,105 crimes (2024 to present)  
-**Columns:** 28 original + 9 derived features
+## Report & Deliverables
 
-### Key Columns:
-- `DATE OCC` / `TIME OCC`: Date and time of crime occurrence
-- `AREA NAME`: LAPD patrol area (21 areas)
-- `Crm Cd Desc`: Crime description (140+ types)
-- `Vict Age` / `Vict Sex` / `Vict Descent`: Victim demographics
-- `Premis Desc`: Location type where crime occurred
-- `LAT` / `LON`: Geographic coordinates
-- `Status Desc`: Investigation status
+| Deliverable | Link / File |
+|---|---|
+| **Phase 1 Report (Google Doc)** | [View Report](https://docs.google.com/document/d/1IfdWrU0ViWzt-P31DnCWtzFBuykYbGcUl0mOn432MX8/edit?usp=sharing) |
+| **Workshop Slides** | `LA_Crime_Data_Analysis.pptx` |
 
-## Repository Structure
-```
-project-repo/
-├── README.md                 # This file
-├── requirements.txt          # Python dependencies
+---
+
+## 1) Project Overview
+This project implements the Phase 1 pipeline for structured crime data analysis using Python:
+- Data ingestion check
+- Reproducible data cleaning/processing
+- Exploratory Data Analysis (EDA) with tables + visualizations
+
+Primary dataset used:
+- **Source:** [Crime Data from 2020 to Present (data.gov)](https://catalog.data.gov/dataset/crime-data-from-2020-to-present)
+- **File in repo:** `data/raw/crime_data_2024_to_present.csv`
+- **Scale:** ~62K rows (meets 50,000+ row requirement)
+
+The code is designed to run from a **fresh local Python environment** and generate all processed outputs in `data/processed/`.
+
+---
+
+## 2) Repository Structure
+```text
+DIC_Assignment_safecity-analytics/
+├── README.md
+├── requirements.txt
 ├── data/
 │   ├── raw/                  # Original data files
 │   │   └── crime_data_2024_to_present.csv
