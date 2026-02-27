@@ -13,6 +13,15 @@
 
 ---
 
+## Report & Deliverables
+
+| Deliverable | Link / File |
+|---|---|
+| **Phase 1 Report (Google Doc)** | [View Report](https://docs.google.com/document/d/1IfdWrU0ViWzt-P31DnCWtzFBuykYbGcUl0mOn432MX8/edit?usp=sharing) |
+| **Workshop Slides** | `LA_Crime_Data_Analysis.pptx` |
+
+---
+
 ## 1) Project Overview
 This project implements the Phase 1 pipeline for structured crime data analysis using Python:
 - Data ingestion check
