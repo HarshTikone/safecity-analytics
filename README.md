@@ -3,6 +3,7 @@
 ## Project Overview
 This project analyzes Los Angeles crime data from 2024 to present, covering 62,105 crime records. The analysis follows the data science pipeline including data acquisition, cleaning, exploratory data analysis (EDA), and visualization.
 ## Team Members
+
 - Harsh Mahesh Tikone
 - Dev Desai
 - Shwetangi
@@ -71,7 +72,6 @@ cd project-repo
 ```bash
 pip install -r requirements.txt
 ```
-
 ### Running the Analysis
 
 1. **Data Cleaning:**
