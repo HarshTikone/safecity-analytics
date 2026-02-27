@@ -26,7 +26,7 @@ PALETTE  = "YlOrRd"
 ACCENT   = "#D62728"   # red — draws attention to key findings
 NEUTRAL  = "#4C72B0"   # blue — standard bars
 BG_GRAY  = "#F7F7F7"
-FIG_DIR  = Path("figures")
+FIG_DIR  = Path("data/processed/eda/plots")
 
 plt.rcParams.update({
     "figure.facecolor": BG_GRAY,
