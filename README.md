@@ -3,13 +3,13 @@
 ## Course + Assignment Header
 - **Subject Code:** EAS 587  
 - **Course:** Data-Intensive Computing (Spring 2026)  
-- **Assignment No.:** Project Phase 1, Phase 2 & Phase 3
+- **Assignment No.:** Project Phase 1, Phase 2, Phase 3 & Phase 4
 - **Project Title:** SafeCity Analytics: LA Crime Data Analysis  
 - **Instructor:** Dr. Justice Del Vacio  
 - **Team Members:**  
   - Harsh Mahesh Tikone  
   - Dev Desai  
-  - Shwetangi   
+  - Shwetangi Singh 
 
 ---
 
@@ -20,15 +20,17 @@
 | **Phase 1 Report (Google Doc)** | [View Report](https://docs.google.com/document/d/1oYahBmjBAiVArPI48sZtJC_sIqrrbvFXyusX9ByZsmY/edit?usp=sharing) |
 | **Phase 1 Workshop Slides** | `LA_Crime_Data_Analysis.pptx` |
 | **Phase 2 Report (Google Doc)** | [View Report](https://docs.google.com/document/d/10sJOqEEXB30xsa94dIkb-TCN8guEs0muV1l9IHjfs6g/edit?tab=t.0) |
-| **Phase 2 Workshop Slides** | `LA_Crime_Data_Analysis.pptx` |
+| **Phase 2 Workshop Slides** | `safecity_workshop_slides_phase_2.pptx` |
 | **Phase 3 Report (Google Doc)** | [View Report](https://docs.google.com/document/d/1DYWHYWxX1tqeKoY19AvVmRuRjts-9Jhkl3FwlD8IBaY/edit?tab=t.0) |
 | **Phase 3 Workshop Slides** | `LA_Crime_Data_Analysis.pptx` |
+| **Phase 4 Report (PDF)** | `Phase4report.pdf` |
+| **Phase 4 Presentation Slides (PDF)** | `presentation_slides.pdf` |
 
 ---
 
 ## How to Use This Project (Quick Start)
 
-Run all commands from the project root (`DIC_Assignment_safecity-analytics/`).
+Run all commands from the project root (`safecity-analytics/`).
 
 ### 1) Install dependencies
 
@@ -47,7 +49,7 @@ python3 src/eda.py
 
 - Cleaned dataset: `data/processed/crime_data_cleaned.csv`
 - Cleaning audit log: `data/cleaning_audit.json`
-- EDA plots: `data/processed/eda/plots/`
+- EDA plots: `figures/`
 
 ### 3) Run Phase 2 (model training + comparison)
 
@@ -77,6 +79,10 @@ claude mcp add -s project safecity-crime-predictor -- python3 src/mcp/server.py
 claude mcp get safecity-crime-predictor
 ```
 
+### 6) Run Phase 3 (Databricks / Spark)
+
+Import notebooks from `notebooks/databricks/` into your Databricks workspace and run in order (see Phase 3 section below).
+
 ---
 
 ## Repository Structure
@@ -90,10 +96,26 @@ safecity-analytics/
 ├── .mcp.json
 ├── LA_Crime_Data_Analysis.pptx
 ├── safecity_workshop_slides_phase_2.pptx
+├── Phase4report.pdf                          ← Phase 4: final report
+├── presentation_slides.pdf                   ← Phase 4: final presentation
 ├── data/                                     ← Phase 1: raw and processed data
+│   ├── raw/
+│   │   └── crime_data_2024_to_present.csv
+│   ├── processed/
+│   │   └── crime_data_cleaned.csv
+│   └── cleaning_audit.json
 ├── figures/                                  ← Phase 1: EDA visualizations
 ├── models/                                   ← Phase 2: serialized trained models
+│   ├── knn_model.pkl
+│   ├── decision_tree_model.pkl
+│   ├── kmeans_model.pkl
+│   ├── naive_bayes_model.pkl
+│   ├── random_forest_model.pkl
+│   └── logistic_regression_model.pkl
 ├── outputs/                                  ← Phase 2: plots and metrics CSVs
+│   ├── comparison/
+│   ├── decision_tree/
+│   └── kmeans/
 ├── src/                                      ← Phase 1 & 2: source code
 │   ├── data_cleaning.py
 │   ├── eda.py
@@ -153,7 +175,7 @@ We used a single primary dataset:
 ### Installation
 ```bash
 git clone <repository-url>
-cd DIC_Assignment_safecity-analytics
+cd safecity-analytics
 pip install -r requirements.txt
 ```
 
@@ -385,18 +407,19 @@ Full setup instructions: [`src/mcp/README.md`](src/mcp/README.md)
 
 ### Classification Performance
 
-| Algorithm | Target | Test Accuracy | Weighted F1 |
-|-----------|--------|--------------|-------------|
-| kNN (best k=3) | Severity | 0.9985 | 1.00 |
-| Decision Tree | Crime Category | 0.8246 | 0.81 |
-| Naive Bayes | Crime Category | 0.51 | 0.40 |
-| Random Forest | Crime Category | 0.81 | 0.81 |
-| Logistic Regression | Weapon Involved | 0.8674 | 0.89 |
+| Algorithm | Target | Test Accuracy | Weighted F1 | 3-Fold CV Acc |
+|-----------|--------|--------------|-------------|---------------|
+| kNN (best k=3) | Severity | 0.9985 | 1.00 | — |
+| kNN (k=7, comparison) | Crime Category | 0.7946 | 0.7771 | 0.785 |
+| Decision Tree | Crime Category | 0.8114 | 0.7997 | 0.8014 |
+| Naive Bayes | Crime Category | 0.5104 | 0.3961 | 0.5058 |
+| Random Forest | Crime Category | 0.8150 | 0.8063 | 0.8137 |
+| Logistic Regression | Weapon Involved | 0.8674 | 0.89 | — |
 
 ### Clustering Performance
 
 | Algorithm | Best k | Silhouette Score |
-|-----------|--------|-----------------|
+|-----------|--------|--------------------|
 | k-Means | 2 | 0.5456 |
 
 ---
@@ -427,7 +450,17 @@ For k-Means, we used both the elbow method and silhouette score together. The el
 
 ---
 
-### Runing Phase 3 (Databricks / Spark MLlib)
+# PHASE 3: Distributed Computing with Databricks & Spark
+
+---
+
+## Phase 3 Overview
+
+Phase 3 moves the pipeline to Databricks / Apache Spark to handle large-scale data processing and distributed ML. The primary LAPD dataset is joined with a second source (NIBRS — FBI's National Incident-Based Reporting System) to enable cross-dataset analysis.
+
+---
+
+## Running Phase 3 (Databricks / Spark MLlib)
 
 Phase 3 runs on Databricks. Import the notebooks from `notebooks/databricks/` and run them in order:
 
@@ -442,24 +475,52 @@ Phase 3 runs on Databricks. Import the notebooks from `notebooks/databricks/` an
 | 7 | `07_nibrs_insights.ipynb` | 3 insights from combined data |
 | 8 | `08_nibrs_mllib.ipynb` | Logistic Regression using features from both sources |
 
+### Saved MLlib Model
+
+The trained Spark MLlib pipeline (VectorAssembler → StandardScaler → LogisticRegression) is saved under `part2_phase3_databrick_model/` in Delta format and can be reloaded directly in Databricks:
+
+```python
+from pyspark.ml import PipelineModel
+model = PipelineModel.load("part2_phase3_databrick_model/")
+```
+
+---
+
+# PHASE 4: Final Report & Presentation
+
+---
+
+## Phase 4 Overview
+
+Phase 4 consolidates findings from all prior phases into a final written report and presentation delivered to the class. No new code is introduced; this phase synthesizes the full project narrative — data pipeline, modeling results, distributed computing, and key insights — into polished deliverables.
+
+- **Final Report:** `Phase4report.pdf`
+- **Presentation Slides:** `presentation_slides.pdf`
+
+---
+
 ## Reproducibility
 
 - All random seeds are set to `42` across all Phase 2 scripts
 - `preprocess.py` provides a single shared feature pipeline used by all models
 - Run scripts in the order listed under **Running Phase 2** above
-- Verified on a fresh environment: confirmed by Harsh on 21st March.
+- Verified on a fresh environment: confirmed by Harsh on 21st March
 
 ---
 
 ## Dependencies
 
-See `requirements.txt` for full list:
-- pandas
-- numpy
-- matplotlib
-- seaborn
-- scikit-learn
-- mcp
+See `requirements.txt` for full pinned versions:
+
+```
+pandas==2.2.2
+numpy==1.26.4
+matplotlib==3.8.4
+seaborn==0.13.2
+scipy==1.13.0
+scikit-learn==1.5.0
+mcp>=1.9.0
+```
 
 ---
 
@@ -471,10 +532,7 @@ See `requirements.txt` for full list:
 4. Hosmer, D.W. & Lemeshow, S. (2000). *Applied Logistic Regression* (2nd ed.). Wiley. https://doi.org/10.1002/0471722146
 5. Pedregosa, F. et al. (2011). Scikit-learn: Machine Learning in Python. *JMLR*, 12, 2825–2830. https://scikit-learn.org
 6. Model Context Protocol Documentation. https://modelcontextprotocol.io/
-7. VanderPlas, J. (2016). *Python Data Science Handbook*. O'Reilly. https://jakevdp.github.io/PythonDataScienceHandbook/
+7. VanderPlas, J. (2016). *Python Data Science Handbook*. O'Reilly. https://jakevdk.github.io/PythonDataScienceHandbook/
+8. Apache Spark MLlib Documentation. https://spark.apache.org/docs/latest/ml-guide.html
 
 ---
-
-## License
-
-This project is for educational purposes (EAS 587).
