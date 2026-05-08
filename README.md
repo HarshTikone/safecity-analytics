@@ -450,22 +450,23 @@ For k-Means, we used both the elbow method and silhouette score together. The el
 
 ---
 
-# PHASE 3: Distributed Computing with Databricks & Spark
+## PHASE 3: Distributed Computing with Databricks & Spark
 
----
-
-## Phase 3 Overview
-
+### Phase 3 Overview
 Phase 3 moves the pipeline to Databricks / Apache Spark to handle large-scale data processing and distributed ML. The primary LAPD dataset is joined with a second source (NIBRS — FBI's National Incident-Based Reporting System) to enable cross-dataset analysis.
 
----
+The pipeline follows a **Medallion architecture** across three Delta Lake layers:
+- **Bronze** — raw ingestion, no transforms, with `_source` and `_ingested_at` audit columns
+- **Silver** — cleaned, joined, and feature-engineered; all three source tables merged into `silver_lapd_crimes` (62,105 rows, partitioned by LAPD area)
+- **Gold** — six aggregated tables, each answering a specific analytical question
 
-## Running Phase 3 (Databricks / Spark MLlib)
+By the end, the catalog has 13 Delta tables across all three layers.
 
+### Running Phase 3 (Databricks / Spark MLlib)
 Phase 3 runs on Databricks. Import the notebooks from `notebooks/databricks/` and run them in order:
 
 | Order | Notebook | What it does |
-|---|---|---|
+|-------|----------|--------------|
 | 1 | `01_lapd_bronze.ipynb` | Ingest primary LAPD crime CSV → `bronze_mydata` Delta table |
 | 2 | `02_lapd_silver.ipynb` | Clean + transform → `silver_mydata` Delta table |
 | 3 | `03_lapd_gold.ipynb` | Business aggregates → 6 gold Delta tables |
@@ -475,17 +476,31 @@ Phase 3 runs on Databricks. Import the notebooks from `notebooks/databricks/` an
 | 7 | `07_nibrs_insights.ipynb` | 3 insights from combined data |
 | 8 | `08_nibrs_mllib.ipynb` | Logistic Regression using features from both sources |
 
-### Saved MLlib Model
+### Phase 3 Key Results
 
+| Algorithm | Metric | Phase 2 (sklearn) | Phase 3 (MLlib) |
+|-----------|--------|-------------------|-----------------|
+| Decision Tree (crime category) | Accuracy / F1 | 0.8246 / 0.8100 | 0.5285 / 0.5044 |
+| Naive Bayes (crime category) | Accuracy / F1 | 0.5104 / 0.3961 | 0.3967 / 0.3058 |
+| Logistic Regression (weapon) | ROC-AUC | — | 0.91 |
+
+The accuracy drop in the distributed models is largely explained by shuffle differences in Spark vs. pandas and the different train/test split ratios (80/20 in MLlib vs. 60/20/20 in sklearn). The weapon predictor hit 91% ROC-AUC without any tuning, which was better than expected.
+
+### Phase 3 Challenges & Dead Ends
+
+**StringIndexer is blocked on CE Shared clusters.** Databricks Community Edition's Shared cluster type blocks StringIndexer through the Py4J security whitelist. The fix was to use Spark SQL `dense_rank()` window functions instead — same integer indices, works on any cluster type. Starting on a Single User cluster from the start would have avoided this entirely.
+
+**CrossValidator caused OOM crashes.** The CE node doesn't have enough memory to cache multiple model copies simultaneously. We used fixed hyperparameters instead (`regParam=0.01` for Logistic Regression, manual depth for Decision Tree) and deleted model objects from memory between cells to keep subsequent cells from crashing.
+
+**The CaseNo join is partial.** LAPD `DR_NO` and NIBRS `CaseNo` use different formatting, so direct match coverage is incomplete. Rather than treating unmatched rows as missing data, we queried both tables independently and compared distributions. Where both sources agree on a pattern, the finding is more trustworthy.
+
+### Saved MLlib Model
 The trained Spark MLlib pipeline (VectorAssembler → StandardScaler → LogisticRegression) is saved under `part2_phase3_databrick_model/` in Delta format and can be reloaded directly in Databricks:
 
 ```python
 from pyspark.ml import PipelineModel
 model = PipelineModel.load("part2_phase3_databrick_model/")
 ```
-
----
-
 # PHASE 4: Final Report & Presentation
 
 ---
