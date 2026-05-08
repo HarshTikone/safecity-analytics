@@ -451,56 +451,69 @@ For k-Means, we used both the elbow method and silhouette score together. The el
 ---
 
 ## PHASE 3: Distributed Computing with Databricks & Spark
-
-### Phase 3 Overview
-Phase 3 moves the pipeline to Databricks / Apache Spark to handle large-scale data processing and distributed ML. The primary LAPD dataset is joined with a second source (NIBRS — FBI's National Incident-Based Reporting System) to enable cross-dataset analysis.
-
+ 
+### Overview
+ 
+Phase 3 moves the pipeline to Databricks / Apache Spark and integrates a second source — FBI's National Incident-Based Reporting System (NIBRS) — for cross-dataset analysis.
+ 
 The pipeline follows a **Medallion architecture** across three Delta Lake layers:
 - **Bronze** — raw ingestion, no transforms, with `_source` and `_ingested_at` audit columns
-- **Silver** — cleaned, joined, and feature-engineered; all three source tables merged into `silver_lapd_crimes` (62,105 rows, partitioned by LAPD area)
+- **Silver** — cleaned, type-cast, and feature-engineered; all three source tables left-joined on `CaseNo` into `silver_lapd_crimes` (62,105 rows, partitioned by AREA across 21 divisions)
 - **Gold** — six aggregated tables, each answering a specific analytical question
-
-By the end, the catalog has 13 Delta tables across all three layers.
-
-### Running Phase 3 (Databricks / Spark MLlib)
-Phase 3 runs on Databricks. Import the notebooks from `notebooks/databricks/` and run them in order:
-
+13 Delta tables total across all three layers.
+ 
+### Running Phase 3
+ 
+Import notebooks from `notebooks/databricks/` and run in order:
+ 
 | Order | Notebook | What it does |
 |-------|----------|--------------|
-| 1 | `01_lapd_bronze.ipynb` | Ingest primary LAPD crime CSV → `bronze_mydata` Delta table |
-| 2 | `02_lapd_silver.ipynb` | Clean + transform → `silver_mydata` Delta table |
-| 3 | `03_lapd_gold.ipynb` | Business aggregates → 6 gold Delta tables |
-| 4 | `04_lapd_mllib.ipynb` | MLlib models (Decision Tree, Naive Bayes) on primary data |
-| 5 | `05_nibrs_bronze.ipynb` | Ingest NIBRS Victims + Offenses CSVs → bronze Delta tables |
-| 6 | `06_nibrs_silver_combined.ipynb` | Join LAPD + NIBRS → `silver_lapd_crimes` Delta table |
+| 1 | `01_lapd_bronze.ipynb` | Ingest LAPD CSV → `bronze_mydata` |
+| 2 | `02_lapd_silver.ipynb` | Clean + transform → `silver_mydata` |
+| 3 | `03_lapd_gold.ipynb` | Aggregates → 6 gold Delta tables |
+| 4 | `04_lapd_mllib.ipynb` | Decision Tree + Naive Bayes on primary data |
+| 5 | `05_nibrs_bronze.ipynb` | Ingest NIBRS CSVs → bronze Delta tables |
+| 6 | `06_nibrs_silver_combined.ipynb` | Join LAPD + NIBRS → `silver_lapd_crimes` |
 | 7 | `07_nibrs_insights.ipynb` | 3 insights from combined data |
-| 8 | `08_nibrs_mllib.ipynb` | Logistic Regression using features from both sources |
-
+| 8 | `08_nibrs_mllib.ipynb` | Logistic Regression on weapon prediction |
+ 
 ### Phase 3 Key Results
-
-| Algorithm | Metric | Phase 2 (sklearn) | Phase 3 (MLlib) |
+ 
+| Algorithm | Target | Phase 2 (sklearn) | Phase 3 (MLlib) |
 |-----------|--------|-------------------|-----------------|
-| Decision Tree (crime category) | Accuracy / F1 | 0.8246 / 0.8100 | 0.5285 / 0.5044 |
-| Naive Bayes (crime category) | Accuracy / F1 | 0.5104 / 0.3961 | 0.3967 / 0.3058 |
-| Logistic Regression (weapon) | ROC-AUC | — | 0.91 |
-
-The accuracy drop in the distributed models is largely explained by shuffle differences in Spark vs. pandas and the different train/test split ratios (80/20 in MLlib vs. 60/20/20 in sklearn). The weapon predictor hit 91% ROC-AUC without any tuning, which was better than expected.
-
-### Phase 3 Challenges & Dead Ends
-
-**StringIndexer is blocked on CE Shared clusters.** Databricks Community Edition's Shared cluster type blocks StringIndexer through the Py4J security whitelist. The fix was to use Spark SQL `dense_rank()` window functions instead — same integer indices, works on any cluster type. Starting on a Single User cluster from the start would have avoided this entirely.
-
-**CrossValidator caused OOM crashes.** The CE node doesn't have enough memory to cache multiple model copies simultaneously. We used fixed hyperparameters instead (`regParam=0.01` for Logistic Regression, manual depth for Decision Tree) and deleted model objects from memory between cells to keep subsequent cells from crashing.
-
-**The CaseNo join is partial.** LAPD `DR_NO` and NIBRS `CaseNo` use different formatting, so direct match coverage is incomplete. Rather than treating unmatched rows as missing data, we queried both tables independently and compared distributions. Where both sources agree on a pattern, the finding is more trustworthy.
-
+| Decision Tree | Crime Category | Acc=0.8246 / F1=0.8100 | Acc=0.5285 / F1=0.5044 |
+| Naive Bayes | Crime Category | Acc=0.5104 / F1=0.3961 | Acc=0.3967 / F1=0.3058 |
+| Logistic Regression | Weapon (binary) | ROC-AUC=0.8674 / Acc=0.8674 | ROC-AUC=0.9123 / Acc=0.9385 / F1=0.9205 |
+ 
+The Decision Tree and Naive Bayes accuracy drops are explained by distributed shuffling in Spark vs. pandas, no cross-validation on CE (OOM constraint), and an 80/20 split vs. the 60/20/20 split in Phase 2. The Logistic Regression weapon predictor improved in Phase 3, reaching ROC-AUC of 0.9123 with NIBRS-augmented features.
+ 
+### NIBRS Insights
+ 
+**Insight 1 — Weapon crime is concentrated:**
+Pacific division has a 20.37% weapon rate (913 of 4,481 crimes). The next highest is Southeast at 9.36%. NIBRS shows most offenses are crimes against property (137,367) but person-targeted crimes (85,820) carry most weapon involvement.
+ 
+**Insight 2 — Both sources agree on when crime happens:**
+LAPD and NIBRS hourly distributions, normalized to percentage share, are nearly identical — both dip at 5–6am and peak in the evening. Weekend average (crimes/day) is slightly higher than weekday.
+ 
+**Insight 3 — Victim demographics and reporting delays:**
+83.6% of NIBRS victims are Person-type. In LAPD, 48.5% of victim demographic records are unknown. Financial crimes go unreported the longest — embezzlement averages 31 days, identity theft 18 days. Violent crimes are reported within a day or two.
+ 
+### Challenges & Dead Ends
+ 
+**StringIndexer blocked on CE Shared clusters.** Databricks Community Edition's Shared cluster blocks StringIndexer via the Py4J whitelist. Fixed by using Spark SQL `dense_rank()` window functions instead — same integer indices, works on any cluster type.
+ 
+**CrossValidator caused OOM.** The CE node crashed when caching multiple model copies. Fixed hyperparameters were used instead (`regParam=0.01` for LR, manual `maxDepth=15` for DT). Model objects were deleted from memory after evaluation to prevent subsequent cells from crashing.
+ 
+**CaseNo join is partial.** LAPD `DR_NO` and NIBRS `CaseNo` use different formatting — only 45 of 62,105 rows (0.1%) matched directly. We analyzed the NIBRS tables independently and compared distributions rather than relying solely on joined rows.
+ 
 ### Saved MLlib Model
-The trained Spark MLlib pipeline (VectorAssembler → StandardScaler → LogisticRegression) is saved under `part2_phase3_databrick_model/` in Delta format and can be reloaded directly in Databricks:
-
+ 
 ```python
 from pyspark.ml import PipelineModel
 model = PipelineModel.load("part2_phase3_databrick_model/")
 ```
+ 
+---
 # PHASE 4: Final Report & Presentation
 
 ---
