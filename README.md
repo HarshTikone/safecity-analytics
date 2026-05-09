@@ -481,7 +481,7 @@ Import notebooks from `notebooks/databricks/` and run in order:
  
 | Algorithm | Target | Phase 2 (sklearn) | Phase 3 (MLlib) |
 |-----------|--------|-------------------|-----------------|
-| Decision Tree | Crime Category | Acc=0.8246 / F1=0.8100 | Acc=0.5285 / F1=0.5044 |
+| Decision Tree | Crime Category | Acc=0.8114 / F1=0.7997| Acc=0.5285 / F1=0.5044 |
 | Naive Bayes | Crime Category | Acc=0.5104 / F1=0.3961 | Acc=0.3967 / F1=0.3058 |
 | Logistic Regression | Weapon (binary) | ROC-AUC=0.8674 / Acc=0.8674 | ROC-AUC=0.9123 / Acc=0.9385 / F1=0.9205 |
  
